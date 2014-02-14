@@ -24,6 +24,7 @@ try:
 except ImportError:
     _has_git = False
 
+
 PELICAN_VENV = '/var/cache/pelican_venv'
 PELICAN_DATA_DIR = "/var/cache/blog_source"
 
@@ -101,7 +102,11 @@ def update():
     """
     return __salt__['git.pull'](PELICAN_DATA_DIR, opts='origin master')
 
+
 def upgrade():
+    """
+    Upgrades your installation of pelican
+    """
     command = "%s/bin/pip install --upgrade pelican" % PELICAN_VENV
     process = subprocess.Popen(
         shlex.split(command),
