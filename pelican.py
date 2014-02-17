@@ -18,7 +18,9 @@ import subprocess
 from salt import exceptions
 
 
+# TODO: pillardise this
 PELICAN_VENV = '/var/cache/pelican_venv'
+# TODO: pillardise this and make it an iterable
 PELICAN_DATA_DIR = "/var/cache/blog_source"
 
 
@@ -31,6 +33,7 @@ def _conditions():
     Logs a message about what is going to be checked"""
     logging.debug("Checking for git")
     try:
+        # Do we really need to depend on git? Perhaps be DVCS agnostic
         from salt.modules import git
     except ImportError:
         yield False
