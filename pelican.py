@@ -18,13 +18,6 @@ import subprocess
 from salt import exceptions
 
 
-_has_git = True
-try:
-    from salt.modules import git
-except ImportError:
-    _has_git = False
-
-
 PELICAN_VENV = '/var/cache/pelican_venv'
 PELICAN_DATA_DIR = "/var/cache/blog_source"
 
@@ -37,7 +30,12 @@ def _conditions():
 
     Logs a message about what is going to be checked"""
     logging.debug("Checking for git")
-    yield _has_git
+    try:
+        from salt.modules import git
+    except ImportError:
+        yield False
+    else:
+        yield True
     logging.debug("Checking for pelican venv installed: %s", PELICAN_VENV)
     yield os.path.isdir(PELICAN_VENV)
     logging.debug("Checking for pelican data dir: %s ", PELICAN_DATA_DIR)
@@ -54,11 +52,11 @@ def __virtual__():
 
 def build():
     """
-    Build the pelican blog, as soon as I get this module to load.
+    Build the pelican blog
 
     Calls update() before.
     """
-    pelican_update()
+    blog_update()
 
     # PWD variable is used by the Makefile
     env = {
@@ -96,7 +94,7 @@ def build():
         )))
 
 
-def update():
+def blog_update():
     """
     Updates the git checkout of the blog
     """
