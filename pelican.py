@@ -31,7 +31,7 @@ def _conditions():
     """Internal generator: enumerate booleans for requisites.
 
     Logs a message about what is going to be checked"""
-    logging.debug("Checking for git")
+    _logger.debug("Checking for git")
     try:
         # Do we really need to depend on git? Perhaps be DVCS agnostic
         from salt.modules import git
@@ -39,16 +39,16 @@ def _conditions():
         yield False
     else:
         yield True
-    logging.debug("Checking for pelican venv installed: %s", PELICAN_VENV)
+    _logger.debug("Checking for pelican venv installed: %s", PELICAN_VENV)
     yield os.path.isdir(PELICAN_VENV)
-    logging.debug("Checking for pelican data dir: %s ", PELICAN_DATA_DIR)
+    _logger.debug("Checking for pelican data dir: %s ", PELICAN_DATA_DIR)
     yield os.path.isdir(PELICAN_DATA_DIR)
 
 
 def __virtual__():
     """Should this module be loaded?"""
     if not all(_conditions()):
-        logging.debug("Condition failed")
+        _logger.debug("Condition failed")
         return False
     return """pelican"""
 
