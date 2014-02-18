@@ -22,9 +22,11 @@ from salt import exceptions
 PELICAN_VENV = '/var/cache/pelican_venv'
 # TODO: pillardise this and make it an iterable
 PELICAN_DATA_DIR = "/var/cache/blog_source"
+UNIX_USER = 'pelican'
 
 
 _logger = logging.getLogger('pelican_module')
+__virtualname__ = 'pelican'
 
 
 def _conditions():
@@ -50,7 +52,7 @@ def __virtual__():
     if not all(_conditions()):
         _logger.debug("Condition failed")
         return False
-    return """pelican"""
+    return __virtualname__
 
 
 def build():
@@ -61,40 +63,27 @@ def build():
     """
     blog_update()
 
-    # PWD variable is used by the Makefile
-    env = {
-        'PATH': ':'.join((
-            '%s/bin/' % PELICAN_VENV,
-            os.environ['PATH']
-            )),
-        'PWD': PELICAN_DATA_DIR,
-        }
-    command = 'make html'
-    process = subprocess.Popen(
-        shlex.split(command),
-        env=env,
-        cwd=PELICAN_DATA_DIR,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-        )
-    process.wait() # risk of overfilling PIPEs?
-    stdout_data, stderr_data = process.communicate()
-    returncode = process.returncode
+    #ensure property
+    __salt__['cmd.run']('chown -R %s %s' % (UNIX_USER, PELICAN_DATA_DIR))
 
-    if returncode == 0:
-        return "pelican salt module, building %s\n%s" % (
-            PELICAN_DATA_DIR,
-            stdout_data
+    # ensure 'make' will find the pelican exe
+    cmd_env_path = os.environ['PATH']
+    env_binpath = os.path.join(PELICAN_VENV, 'bin')
+    if not env_binpath in cmd_env_path:
+        cmd_env_path = '%s:%s' % (
+            env_binpath,
+            orig_path,
             )
-    raise exceptions.CommandExecutionError('\n'.join((
-        '"make html" -> ...',
-        'stdout:',
-        stdout_data,
-        'stderr:',
-        stderr_data,
-        'env:',
-        str(env),
-        )))
+    ret = __salt__['cmd.run'](
+        'make html',
+        user=UNIX_USER,
+        cwd=PELICAN_DATA_DIR,
+        env={
+            'PATH': cmd_env_path,
+            'PWD': PELICAN_DATA_DIR,
+        }
+
+    return "Built pelican site!\n" + ret
 
 
 def blog_update():
@@ -108,26 +97,17 @@ def upgrade():
     """
     Upgrades your installation of pelican
     """
-    command = "%s/bin/pip install --upgrade pelican" % PELICAN_VENV
-    process = subprocess.Popen(
-        shlex.split(command),
-        cwd=PELICAN_DATA_DIR,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-        )
-    process.wait() # risk of overfilling PIPEs?
-    stdout_data, stderr_data = process.communicate()
-    returncode = process.returncode
+    return __salt__['pip.install']('pelican', user=UNIX_USER, bin_env=PELICAN_VENV)
 
-    if returncode == 0:
-        return "pelican update:\n%s" % (
-            stdout_data
-            )
-    raise exceptions.CommandExecutionError('\n'.join((
-        '"make html" -> ...',
-        'stdout:',
-        stdout_data,
-        'stderr:',
-        stderr_data,
-        'env:',
-        )))
+
+def install_pelican_venv(directory):
+    """
+    directory must exist
+    """
+    #ensure property
+    ret = __salt__['cmd.run']('chown -R %s %s' % (UNIX_USER, PELICAN_VENV))
+    _logger.debug("Creating virtualenv in %s", directory)
+    ret += __salt__['virtualenv.create'](directory, pip=True, runas=UNIX_USER)
+    upgrade()
+    return ret
+
