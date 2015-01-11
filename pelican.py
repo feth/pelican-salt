@@ -83,7 +83,7 @@ def build():
             'PWD': PELICAN_DATA_DIR,
         }
 
-    return "Built pelican site!\n" + ret
+    return "Built pelican site! {0}\n".format(ret)
 
 
 def blog_update():
